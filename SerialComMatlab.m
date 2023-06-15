@@ -1,4 +1,48 @@
-clc; clear all; close all; format compact; format shortG
+% https://www.mathworks.com/help/matlab/import_export/read-streaming-data-from-arduino.html
+clc; clear; close all; format compact; format shortG
+
+%% Preparing the serial communication
+% Select the correct port and correct Baudrate
+% Set the terminator to "CR/LF" (CR = Carriage Return and LF = Line Feed)
+% Flush previous data
+s = serialport('COM7', 9600);
+configureTerminator(s, "CR/LF");
+
+%% Use this code to read data from the serial port
+% Break the loop by pushing Ctrl+C
+flush(s);
+while 1
+    data = str2double(strsplit(readline(s), ','))
+end
+
+%% Use this code to save and plot data
+% Save n number of data
+delay = .05;    % delay in the serial communication (depending on the variable in Arduino code)
+duration = 5;  % duration of the experiment in sec
+n = duration/delay + 1;
+i=1;
+flush(s); pause(.1);
+
+while i <= n
+    tmp = str2double(strsplit(readline(s), ','))
+    data(i,:) = tmp;
+    i = i+1;
+end
+
+% Create figure: one quarter of the screen size, top left
+screen_property = get(0,'screensize');
+h = figure('outerposition', ...
+            [0, screen_property(4)/2, ...  
+            screen_property(3)/2, screen_property(4)/2]); 
+grid on; hold on; 
+plot(data(:,1)/1000,data(:,2)); grid on
+xlabel("Time (s)"); 
+ylabel("Angle (deg)"); 
+
+%% More interactive plot
+
+
+
 
 % Create figure
 screen_property = get(0,'screensize');
