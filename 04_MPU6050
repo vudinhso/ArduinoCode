@@ -78,7 +78,6 @@ void setup()
   AccY_calib = AccY_calib / 2000;
   AccZ_calib = AccZ_calib / 2000;
 
-  Serial.println("");
   Serial.println("MPU calibrated. Press any key to start the main program.");
   while (!Serial.available())
     ;
@@ -97,12 +96,12 @@ void loop()
   AccX -= AccX_calib;
   AccY -= AccY_calib;
   AccZ -= AccZ_calib;
-  
+
   dt_mpu = (curr_time - prev_time_mpu);
   prev_time_mpu = curr_time;
 
   Acc_angle[1] = atan2(AccZ, sqrt(pow(AccY, 2) + pow(AccX, 2))) * rad_to_deg;
-  Acc_angle[2] = atan2(AccY, sqrt(pow(AccX, 2) + pow(AccZ, 2))) * rad_to_deg;
+  Acc_angle[2] = atan2(-AccY, sqrt(pow(AccX, 2) + pow(AccZ, 2))) * rad_to_deg;
 
   Gyro_angle[0] += GyroX * dt_mpu / 1000000;
   Gyro_angle[1] += GyroY * dt_mpu / 1000000;
@@ -132,8 +131,6 @@ void SerialDataWrite()
   Serial.print(",");
   Serial.print(Total_angle[2]);
   Serial.println("");
-  // Serial.write(13);
-  // Serial.write(10);
 }
 
 void gyro_signals(void)
