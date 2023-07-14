@@ -1,30 +1,42 @@
-% https://www.mathworks.com/help/matlab/import_export/read-streaming-data-from-arduino.html
-clc; clear; close all; format compact; format shortG
-
 %% Preparing the serial communication
+% https://www.mathworks.com/help/matlab/import_export/read-streaming-data-from-arduino.html
+
+% Clear the workspace
 % Select the correct port and correct Baudrate
 % Set the terminator to "CR/LF" (CR = Carriage Return and LF = Line Feed)
-% Flush previous data
-s = serialport('COM7', 9600);
+clc; clear; close all; format compact; format shortG
+s = serialport('COM7', 115200);
 configureTerminator(s, "CR/LF");
 
 %% Use this code to read data from the serial port
-% Break the loop by pushing Ctrl+C
+% Flush the previous data
+% Read the data from the serial COM
+% Break the loop with Ctrl+C
 flush(s);
 while 1
     data = str2double(strsplit(readline(s), ','))
 end
 
-%% Use this code to save and plot data
-% Save n number of data
-delay = .05;    % delay in the serial communication (depending on the variable in Arduino code)
-duration = 5;  % duration of the experiment in sec
-n = duration/delay + 1;
-i=1;
-flush(s); pause(.1);
+%% Use this code to save data and plot data (no real-time visualization)
+% Clean the workspace
+% Set the time interval of the measurement in ms
+% Flush the previous data
+clc; close all; clear data
+disp('Serial COM reading')
+interval = 3*1e3;  
+flush(s); 
 
-while i <= n
-    tmp = str2double(strsplit(readline(s), ','))
+% Read the first data from the COM - the first data is usually corrupted
+% Read the second data from the COM - the second data is usually good
+% Initialize the start time and the loop variable
+str2double(strsplit(readline(s), ','))
+tmp = str2double(strsplit(readline(s), ','))
+time_init = tmp(1);
+i = 1; 
+
+% Start the serial COM reading
+while tmp(1) <= time_init+interval
+    tmp = str2double(strsplit(readline(s), ','));
     data(i,:) = tmp;
     i = i+1;
 end
@@ -35,63 +47,45 @@ h = figure('outerposition', ...
             [0, screen_property(4)/2, ...  
             screen_property(3)/2, screen_property(4)/2]); 
 grid on; hold on; 
-plot(data(:,1)/1000,data(:,2)); grid on
+
+% Plot the acquired data
+plot(data(:,1)/1000,data(:,3)); grid on
 xlabel("Time (s)"); 
 ylabel("Angle (deg)"); 
 
-%% More interactive plot
-
-
-
-
-% Create figure
+%% Use this code for real-time data vizualisation (plot angle vs time)
+clc; close all; flush(s);
+% Prepare the parameters for the animated line
+h1 = animatedline('Color','b','LineWidth',2, 'MaximumNumPoints',500); grid on; 
 screen_property = get(0,'screensize');
-h = figure('outerposition', ...
-            [0, screen_property(4)/2, ...  
-            screen_property(3)/2, screen_property(4)/2]); 
-xlim([0,10]); xlabel('Time (s)');
-ylim([-5 275]); ylabel('Angle (deg)');
-grid on; hold on; 
+set(gcf, "OuterPosition", [0, screen_property(4)/2, ...  
+    screen_property(3)/2, screen_property(4)/2])
+xlabel("Time (s)"); ylabel("Angle (deg)"); 
+ylim([-5 305]);
 
-% Initialize data
-n = 60000; data = zeros(n,2); 
-i = 1; j = 1; index_ref = 1;
-% p = plot(data(1), data(2), '.', 'MarkerSize', 20);
-p = plot(data(1), data(2), '-', 'LineWidth', 2); hold on 
-
-s = serial('COM4', 'BaudRate', 9600);       % Create the serial com
-s.Terminator = 'CR/LF';                     % Set the terminator
-s.UserData = struct('Data',[],'Count',1);   % Data: y-axis, count: x-axis
-
-fopen(s)        % Open serial com
-pause(.5)
-flushinput(s)
-
-tic; 
-
-while data(i,1)/1000 < 60
-    i=i+1;
-    data_str   = fscanf(s);
-    data_split = strsplit(data_str, ',');
-    data(i,:)  = str2double(data_split);
-    
-    if data(i,1)/1000 >= 10*j
-        index_ref = i;              % setting a new index reference
-        xlim([10*j,10*(j+1)]);      % change x-lim
-        j = j+1;
-    end
-    xdata = linspace(   data(index_ref, 1), ...
-                        data(i,1), 100);
-    if (i-index_ref)>= 100
-        dt      = round(linspace(index_ref,i,100));
-        ydata   = interp1(data(dt,1), data(dt,2), xdata);
-    else
-        ydata   = interp1(data(1:i,1), data(1:i,2), xdata);
-    end
-    
-    set(p,  'XData', xdata/1000, ...
-            'YData', ydata)
-    drawnow
+% Start the serial COM reading and animation
+% Break the loop with Ctrl+C
+while 1
+    data  = str2double(strsplit(readline(s), ',')); 
+    addpoints(h1,data(1)/1000,data(2));
+    drawnow;
 end
-toc
-fclose(s)
+
+%% Use this code for real-time data vizualisation - Angle Display
+clc; close all; flush(s);
+% Prepare the parameters for the animated line
+h1 = animatedline('Color','b','LineWidth',2, 'MaximumNumPoints',2); grid on; 
+screen_property = get(0,'screensize');
+set(gcf, "OuterPosition", [0, screen_property(4)/2, ...  
+    screen_property(3)/2, screen_property(4)/2])
+xlim([-1.2 1.2]); ylim([-1.2 1.2]); axis square
+
+% Start the serial COM reading and animation
+% Break the loop with Ctrl+C
+while 1
+    data  = str2double(strsplit(readline(s), ',')); % Read serial COM
+    x = cosd(data(2)); y = sind(data(2)); 
+    addpoints(h1,[0, x],[0, y]);
+%     text(0.8,0.8,['\leftarrow' num2str(data(2))] , 'Color','red','FontSize',14)
+    drawnow;
+end
