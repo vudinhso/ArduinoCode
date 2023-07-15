@@ -61,7 +61,7 @@ void loop()
   if (IsReadySerial1) // Does Seria11 have a new message?
   {
     mySensorData = SD.open("NMEA.txt", FILE_WRITE); // Open file on SD card for writing
-    mySensorData.println(inputSerial1);             // Write first NMEA to SD card
+    mySensorData.print(inputSerial1);               // Write first NMEA to SD card
     mySensorData.close();                           // Close the file
     Serial.print(inputSerial1);                     // Write on the serial monitor for debugging.
     inputSerial1 = "";                              // Clear the string:
