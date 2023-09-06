@@ -150,9 +150,9 @@ void gyro_signals(void)
   Gyro_raw_X = Wire.read() << 8 | Wire.read();
   Gyro_raw_Y = Wire.read() << 8 | Wire.read();
   Gyro_raw_Z = Wire.read() << 8 | Wire.read();
-  GyroX = (float)Gyro_raw_X / 65.5;
-  GyroY = (float)Gyro_raw_Y / 65.5;
-  GyroZ = (float)Gyro_raw_Z / 65.5;
+  GyroX = (float)Gyro_raw_X / 131.0;
+  GyroY = (float)Gyro_raw_Y / 131.0;
+  GyroZ = (float)Gyro_raw_Z / 131.0;
 }
 
 void acc_signals(void)
