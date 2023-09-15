@@ -1,0 +1,102 @@
+#include <Arduino.h>
+#include "I2Cdev.h"
+#include "MPU6050_6Axis_MotionApps20.h"
+#include "Wire.h"
+
+// ================================================================
+// Variable declaration
+// ================================================================
+MPU6050 mpu;
+
+// MPU control/status vars
+uint16_t packetSize;    // DMP packet size. Default is 42 bytes. 
+uint16_t fifoCount;     // count of all bytes currently in FIFO
+uint8_t fifoBuffer[64]; // FIFO storage buffer
+// orientation/motion vars
+Quaternion q;        // [w, x, y, z]         quaternion container
+VectorFloat gravity; // [x, y, z]            gravity vector
+float ypr[3];        // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
+
+unsigned long time_prev = 0;
+
+// ================================================================
+// Function Declaration
+// ================================================================
+void SerialPrintData();
+void readFifoBuffer();
+
+// ================================================================
+// Setup function
+// ================================================================
+void setup()
+{
+  Wire.begin();
+  Wire.setClock(400000);
+
+  Serial.begin(115200);
+  while (!Serial)
+    ;
+
+  mpu.initialize();
+  mpu.dmpInitialize();
+
+  mpu.CalibrateAccel(6);
+  mpu.CalibrateGyro(6);
+
+  // mpu.setXAccelOffset(474);
+  // mpu.setYAccelOffset(-803);
+  // mpu.setZAccelOffset(1252);
+  // mpu.setXGyroOffset(149);
+  // mpu.setYGyroOffset(-58);
+  // mpu.setZGyroOffset(-19);
+
+  mpu.setDMPEnabled(true);
+  packetSize = mpu.dmpGetFIFOPacketSize();
+}
+
+// ================================================================
+// Loop function
+// ================================================================
+void loop()
+{
+  readFifoBuffer();
+
+  // Serial Print
+  if (micros() - time_prev >= 20000)
+  {
+    time_prev = micros();
+    SerialPrintData();
+  }
+}
+
+// ================================================================
+// Function Definition
+// ================================================================
+void SerialPrintData()
+{
+  Serial.print(millis());
+  Serial.print("\t");
+  Serial.print(ypr[0] * 180 / M_PI);
+  Serial.print("\t");
+  Serial.print(ypr[1] * 180 / M_PI);
+  Serial.print("\t");
+  Serial.println(ypr[2] * 180 / M_PI);
+}
+// ================================================================
+void readFifoBuffer()
+{
+  // Clear the buffer so as we can get fresh values
+  // The sensor is running a lot faster than our sample period
+  mpu.resetFIFO();
+  // get current FIFO count
+  fifoCount = mpu.getFIFOCount();
+  // wait for correct available data length, should be a VERY short wait
+  while (fifoCount < packetSize)
+    fifoCount = mpu.getFIFOCount();
+
+  // read a packet from FIFO
+  mpu.getFIFOBytes(fifoBuffer, packetSize);
+  mpu.dmpGetQuaternion(&q, fifoBuffer);
+  mpu.dmpGetGravity(&gravity, &q);
+  mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+}
