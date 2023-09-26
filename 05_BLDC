@@ -1,0 +1,72 @@
+#include <Arduino.h>
+#include <ESP32Servo.h>
+// ================================================================
+// Variable declaration
+// ================================================================
+#define MIN_SIGNAL 1000
+#define MAX_SIGNAL 2000
+#define MOTOR_PIN 14
+Servo ESC;
+int CtrlPWM = 0;
+unsigned long time_prev_serial = 0;
+// ================================================================
+// Function declaration
+// ================================================================
+void SerialDataRead();
+void SerialDataWrite();
+// ================================================================
+// Setup
+// ================================================================
+void setup()
+{
+  Serial.begin(115200);
+  while (!Serial);
+  
+  // Init the ESC
+  ESC.attach(MOTOR_PIN, MIN_SIGNAL, MAX_SIGNAL);
+  ESC.write(0);
+
+  Serial.println("Press any key to start the experiment.");
+  while (!Serial.available())
+    ;
+  Serial.read();
+}
+
+// ================================================================
+// Loop
+// ================================================================
+void loop()
+{
+  SerialDataRead();
+  ESC.write(CtrlPWM);
+  SerialDataWrite();
+}
+
+// ================================================================
+// Function definition
+// ================================================================
+void SerialDataRead()
+{
+  static String received_chars;
+  while (Serial.available())
+  {
+    char inChar = (char)Serial.read();
+    received_chars += inChar;
+    if (inChar == '\n')
+    {
+      CtrlPWM = received_chars.toInt();
+      received_chars = "";
+    }
+  }
+}
+// ******************************************
+void SerialDataWrite()
+{
+  if (micros() - time_prev_serial >= 20000)
+  {
+    time_prev_serial = micros();
+    Serial.print(millis());
+    Serial.print("\t");
+    Serial.println(CtrlPWM);
+  }
+}
